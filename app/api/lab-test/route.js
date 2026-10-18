@@ -10,6 +10,7 @@ import { getDemoIdentity, getLabMode, canAccessConversation, recordLabEvent } fr
  *     requestingDemoId: "alice-demo" | "bob-demo"
  *   }
  */
+
 export async function POST(req) {
   const demoId = getDemoIdentity(req);
   const mode = getLabMode(req);

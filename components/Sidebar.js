@@ -17,6 +17,7 @@ export default function Sidebar({
   const [otherConversations, setOtherConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const isAlice = demoId === "alice-demo";
   const otherUserName = isAlice ? "Bob" : "Alice";
@@ -24,6 +25,7 @@ export default function Sidebar({
 
   const fetchConversations = async () => {
     setLoading(true);
+    setErrorMessage("");
     try {
       const res = await fetch("/api/conversations", {
         headers: apiHeaders
@@ -37,9 +39,15 @@ export default function Sidebar({
           setMyConversations(data);
           setOtherConversations([]);
         }
+      } else {
+        const errData = await res.json().catch(() => null);
+        setErrorMessage(
+          errData?.hint || errData?.error || `Server responded with status ${res.status}`
+        );
       }
     } catch (err) {
       console.error("Failed to load conversations:", err);
+      setErrorMessage("Network error connecting to API");
     } finally {
       setLoading(false);
     }
@@ -218,6 +226,19 @@ export default function Sidebar({
 
       {/* Conversations Scroll Area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {/* Error Notification Card if Serverless / DB issue */}
+        {errorMessage && (
+          <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-500/60 text-rose-200 text-xs space-y-1.5 shadow-lg animate-in fade-in">
+            <div className="flex items-center gap-1.5 font-bold text-rose-300">
+              <span>⚠️</span>
+              <span>Backend Connection Notice</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-rose-200/90 font-mono">
+              {errorMessage}
+            </p>
+          </div>
+        )}
+
         {/* Section 1: My Conversations */}
         <div>
           <div className="flex items-center justify-between mb-2 px-1">

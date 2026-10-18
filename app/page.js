@@ -7,19 +7,21 @@ import ChatWindow from "../components/ChatWindow";
 import LabPanel from "../components/LabPanel";
 
 export default function Home() {
-  const [demoId, setDemoId] = useState(
-    typeof window !== "undefined"
-      ? localStorage.getItem("demoId") ?? "alice-demo"
-      : "alice-demo"
-  );
-  const [labMode, setLabMode] = useState(
-    typeof window !== "undefined"
-      ? localStorage.getItem("labMode") ?? "secure"
-      : "secure"
-  );
+  const [demoId, setDemoId] = useState("alice-demo");
+  const [labMode, setLabMode] = useState("secure");
   const [activeConversationId, setActiveConversationId] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLabPanelOpen, setIsLabPanelOpen] = useState(false);
+
+  // Load persisted user & mode on mount to eliminate SSR hydration mismatch
+  useEffect(() => {
+    try {
+      const savedDemoId = localStorage.getItem("demoId");
+      if (savedDemoId) setDemoId(savedDemoId);
+      const savedLabMode = localStorage.getItem("labMode");
+      if (savedLabMode) setLabMode(savedLabMode);
+    } catch (_) {}
+  }, []);
 
   // Sync hash on initial load
   useEffect(() => {

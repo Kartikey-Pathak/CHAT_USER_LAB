@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@config "../tailwind.config.js";
+
+@theme {
+  --color-primary: hsl(210, 60%, 55%);
+  --color-bgDark: hsl(210, 10%, 12%);
+  --color-bg-dark: hsl(210, 10%, 12%);
+  --color-panel: hsl(210, 12%, 18%);
+}
+
+/* Custom dark-theme base */
+@layer base {
+  html {
+    background-color: #0b0f17;
+    color: #f3f4f6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Scrollbar styling for a premium feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}

@@ -1,19 +1,21 @@
 {
-  "name": "my-app",
+  "name": "memoryvault",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
+    "mongoose": "^8.24.5",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
-    "tailwindcss": "^4"
+    "@tailwindcss/turbopack": "^4.0.0",
+    "tailwindcss": "^4.0.0"
   }
 }

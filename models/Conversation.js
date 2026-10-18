@@ -1,0 +1,20 @@
+import mongoose from "mongoose";
+
+const MessageSchema = new mongoose.Schema(
+  {
+    role: { type: String, enum: ["user", "assistant"], required: true },
+    content: { type: String, required: true }
+  },
+  { _id: false }
+);
+
+const ConversationSchema = new mongoose.Schema(
+  {
+    ownerId: { type: String, required: true, index: true },
+    title: { type: String, default: "Untitled" },
+    messages: { type: [MessageSchema], default: [] }
+  },
+  { timestamps: true }
+);
+
+export default mongoose.models.Conversation || mongoose.model("Conversation", ConversationSchema);

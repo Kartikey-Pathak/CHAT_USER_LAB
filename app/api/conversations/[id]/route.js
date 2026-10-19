@@ -2,57 +2,64 @@ import { NextResponse } from "next/server";
 import Conversation from "../../../../models/Conversation";
 import { connectToDatabase } from "../../../../lib/mongodb";
 import {
-  getDemoIdentity,
+  getSessionCustomerId,
   getLabMode,
-  canAccessConversation,
-  recordLabEvent
+  recordLabEvent,
 } from "../../../../lib/lab-access";
 
 /* ---------- READ ---------- */
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
-    const demoId = getDemoIdentity(req);
+    const customerId = getSessionCustomerId(req);
     const mode = getLabMode(req);
+
+    if (!customerId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     await connectToDatabase();
 
     const convo = await Conversation.findById(id);
     if (!convo) {
-      await recordLabEvent({ demoId, convoId: id, success: false });
       return NextResponse.json(
-        { error: "Conversation not found", code: "NOT_FOUND" },
+        { error: "Conversation not found" },
         { status: 404 }
       );
     }
 
-    const allowed = canAccessConversation(convo, demoId, mode);
-    if (!allowed) {
-      await recordLabEvent({ demoId, convoId: id, success: false });
+    // Secure mode: enforce ownership
+    if (mode === "secure" && convo.ownerId !== customerId) {
+      await recordLabEvent({
+        customerId,
+        action: "cross_user_convo_read",
+        success: false,
+        details: `Blocked access to convo owned by ${convo.ownerId}`,
+      });
       return NextResponse.json(
-        {
-          error: "Access Denied: Tenant Isolation Enforced",
-          code: "UNAUTHORIZED_TENANT",
-          ownerId: convo.ownerId,
-          requestingDemoId: demoId,
-          mode
-        },
-        { status: 404 }
+        { error: "Access denied: This conversation belongs to another user." },
+        { status: 403 }
       );
     }
 
-    await recordLabEvent({ demoId, convoId: id, success: true });
+    await recordLabEvent({
+      customerId,
+      action: "convo_read",
+      success: true,
+    });
+
     return NextResponse.json({
       _id: convo._id,
       title: convo.title,
       ownerId: convo.ownerId,
       messages: convo.messages,
       createdAt: convo.createdAt,
-      updatedAt: convo.updatedAt
+      updatedAt: convo.updatedAt,
     });
   } catch (error) {
     console.error("GET /api/conversations/[id] error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to load conversation", code: error.name },
+      { error: error.message || "Failed to load conversation" },
       { status: 500 }
     );
   }
@@ -62,56 +69,30 @@ export async function GET(req, { params }) {
 export async function DELETE(req, { params }) {
   try {
     const { id } = await params;
-    const demoId = getDemoIdentity(req);
+    const customerId = getSessionCustomerId(req);
     const mode = getLabMode(req);
+
+    if (!customerId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     await connectToDatabase();
 
     const convo = await Conversation.findById(id);
-    if (!convo || !canAccessConversation(convo, demoId, mode)) {
-      await recordLabEvent({ demoId, convoId: id, success: false });
-      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+    if (!convo) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (mode === "secure" && convo.ownerId !== customerId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     await convo.deleteOne();
-    await recordLabEvent({ demoId, convoId: id, success: true });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("DELETE /api/conversations/[id] error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to delete conversation" },
-      { status: 500 }
-    );
-  }
-}
-
-/* ---------- SEND MESSAGE ---------- */
-export async function PUT(req, { params }) {
-  try {
-    const { id } = await params;
-    const demoId = getDemoIdentity(req);
-    const mode = getLabMode(req);
-    await connectToDatabase();
-
-    const convo = await Conversation.findById(id);
-    if (!convo || !canAccessConversation(convo, demoId, mode)) {
-      await recordLabEvent({ demoId, convoId: id, success: false });
-      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
-    }
-
-    const { role, content } = await req.json();
-    if (!role || !content) {
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-    }
-
-    convo.messages.push({ role, content });
-    await convo.save();
-
-    await recordLabEvent({ demoId, convoId: id, success: true });
-    return NextResponse.json({ _id: convo._id, messages: convo.messages });
-  } catch (error) {
-    console.error("PUT /api/conversations/[id] error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to update conversation" },
+      { error: error.message || "Failed to delete" },
       { status: 500 }
     );
   }

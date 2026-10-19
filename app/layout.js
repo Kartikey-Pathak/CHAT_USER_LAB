@@ -1,8 +1,8 @@
 import "../styles/globals.css";
 
 export const metadata = {
-  title: "MemoryVault - Chat Security Lab",
-  description: "Interactive lab exploring cross-user chat authorization and security"
+  title: "ShopGuard AI — LLM02:2025 Security Lab",
+  description: "Multi-customer AI shopping assistant security lab for testing OWASP LLM02:2025 Sensitive Information Disclosure vulnerabilities"
 };
 
 export const viewport = {

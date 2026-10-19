@@ -5,15 +5,15 @@ import React from "react";
 export default function Navbar({
   onToggleSidebar,
   onToggleLabPanel,
-  demoId = "alice-demo",
-  labMode = "secure"
+  customer,
+  labMode = "secure",
+  onLogout,
 }) {
-  const isAlice = demoId === "alice-demo";
   const isSecure = labMode === "secure";
 
   return (
     <header className="h-14 sm:h-16 bg-[#0f1420]/95 backdrop-blur-md border-b border-gray-800/80 px-3 sm:px-5 flex items-center justify-between shrink-0 z-30 select-none">
-      {/* Left section: Mobile menu button + Brand logo */}
+      {/* Left section */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           type="button"
@@ -36,37 +36,33 @@ export default function Navbar({
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-base sm:text-lg tracking-tight bg-gradient-to-r from-blue-300 via-indigo-200 to-white bg-clip-text text-transparent truncate">
-                MemoryVault
+                ShopGuard AI
               </span>
-              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                Lab
+              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                LLM02
               </span>
             </div>
             <span className="text-[11px] text-gray-400 hidden sm:block truncate">
-              IDOR & Chat Authorization Simulator
+              Sensitive Information Disclosure Lab
             </span>
           </div>
         </div>
       </div>
 
-      {/* Right section: Context pills + Mobile lab toggle */}
+      {/* Right section */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Active Demo User pill */}
-        <div
-          title={`Active account: ${isAlice ? "Alice" : "Bob"}`}
-          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium bg-gray-850/80 border border-gray-700/80 text-gray-200 shadow-sm"
-        >
-          <span
-            className={`w-2 h-2 rounded-full ${
-              isAlice ? "bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.8)]" : "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]"
-            }`}
-          />
-          <span className="text-[11px] sm:text-xs">
-            {isAlice ? "Alice" : "Bob"}
-          </span>
-        </div>
+        {/* Authenticated user pill */}
+        {customer && (
+          <div
+            title={`Logged in as ${customer.displayName}`}
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium bg-gray-850/80 border border-gray-700/80 text-gray-200 shadow-sm"
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
+            <span className="text-[11px] sm:text-xs">{customer.displayName}</span>
+          </div>
+        )}
 
-        {/* Active Lab Mode pill */}
+        {/* Lab Mode pill */}
         <div
           title={`Lab mode is ${labMode}`}
           className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold border shadow-sm ${
@@ -75,15 +71,27 @@ export default function Navbar({
               : "bg-rose-950/50 border-rose-500/50 text-rose-300 animate-pulse"
           }`}
         >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              isSecure ? "bg-emerald-400" : "bg-rose-400"
-            }`}
-          />
+          <span className={`w-1.5 h-1.5 rounded-full ${isSecure ? "bg-emerald-400" : "bg-rose-400"}`} />
           <span className="capitalize">{labMode}</span>
         </div>
 
-        {/* Mobile/Tablet button to toggle Lab Panel */}
+        {/* Logout button */}
+        {customer && (
+          <button
+            type="button"
+            id="btn-logout"
+            onClick={onLogout}
+            title="Logout"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-800/70 hover:bg-gray-700 text-gray-400 hover:text-gray-200 text-xs border border-gray-700/60 active:scale-95 transition"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span className="hidden sm:inline">Logout</span>
+          </button>
+        )}
+
+        {/* Mobile lab toggle */}
         <button
           type="button"
           id="mobile-lab-toggle"

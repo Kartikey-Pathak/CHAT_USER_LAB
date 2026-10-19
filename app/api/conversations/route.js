@@ -1,44 +1,34 @@
 import { NextResponse } from "next/server";
 import Conversation from "../../../models/Conversation";
 import { connectToDatabase } from "../../../lib/mongodb";
-import { getDemoIdentity } from "../../../lib/lab-access";
+import { getSessionCustomerId, getLabMode } from "../../../lib/lab-access";
 
 /**
- * GET – list active user's conversations and target victim conversations for testing.
+ * GET – list conversations for the authenticated customer.
  */
 export async function GET(req) {
   try {
-    const demoId = getDemoIdentity(req);
+    const customerId = getSessionCustomerId(req);
+    if (!customerId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     await connectToDatabase();
 
-    const otherId = demoId === "alice-demo" ? "bob-demo" : "alice-demo";
+    const conversations = await Conversation.find({ ownerId: customerId })
+      .sort({ updatedAt: -1 })
+      .select("_id title ownerId createdAt updatedAt")
+      .lean();
 
-    const [myConvos, otherConvos] = await Promise.all([
-      Conversation.find({ ownerId: demoId })
-        .sort({ createdAt: -1 })
-        .select("_id title ownerId createdAt updatedAt")
-        .lean(),
-      Conversation.find({ ownerId: otherId })
-        .sort({ createdAt: -1 })
-        .select("_id title ownerId createdAt updatedAt")
-        .lean()
-    ]);
-
-    return NextResponse.json({
-      myConversations: myConvos || [],
-      otherConversations: otherConvos || [],
-      currentUserName: demoId === "alice-demo" ? "Alice" : "Bob",
-      otherUserName: otherId === "alice-demo" ? "Alice" : "Bob"
-    });
+    return NextResponse.json({ conversations: conversations || [] });
   } catch (error) {
     console.error("GET /api/conversations error:", error);
     return NextResponse.json(
       {
         error: error.message || "Failed to load conversations",
-        code: error.name || "DATABASE_ERROR",
         hint: !process.env.MONGODB_URI
-          ? "Missing MONGODB_URI. Add MONGODB_URI in Vercel Project Settings > Environment Variables."
-          : "Check MongoDB Atlas Network Access: add 0.0.0.0/0 to allow connections from Vercel."
+          ? "Missing MONGODB_URI. Add it in your .env.local file."
+          : "Check MongoDB Atlas Network Access.",
       },
       { status: 500 }
     );
@@ -46,17 +36,21 @@ export async function GET(req) {
 }
 
 /**
- * POST – create a new empty conversation for the demo user.
+ * POST – create a new conversation for the authenticated customer.
  */
 export async function POST(req) {
   try {
-    const demoId = getDemoIdentity(req);
+    const customerId = getSessionCustomerId(req);
+    if (!customerId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     await connectToDatabase();
 
     const { title } = await req.json();
     const newConvo = await Conversation.create({
-      ownerId: demoId,
-      title: title || "New Conversation"
+      ownerId: customerId,
+      title: title || "New Shopping Chat",
     });
 
     return NextResponse.json({
@@ -64,15 +58,12 @@ export async function POST(req) {
       title: newConvo.title,
       ownerId: newConvo.ownerId,
       createdAt: newConvo.createdAt,
-      updatedAt: newConvo.updatedAt
+      updatedAt: newConvo.updatedAt,
     });
   } catch (error) {
     console.error("POST /api/conversations error:", error);
     return NextResponse.json(
-      {
-        error: error.message || "Failed to create conversation",
-        code: error.name || "DATABASE_ERROR"
-      },
+      { error: error.message || "Failed to create conversation" },
       { status: 500 }
     );
   }

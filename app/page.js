@@ -5,43 +5,43 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import LabPanel from "../components/LabPanel";
+import LoginScreen from "../components/LoginScreen";
 
 export default function Home() {
-  const [demoId, setDemoId] = useState("alice-demo");
+  const [customer, setCustomer] = useState(null);
   const [labMode, setLabMode] = useState("secure");
   const [activeConversationId, setActiveConversationId] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLabPanelOpen, setIsLabPanelOpen] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  // Load persisted user & mode on mount to eliminate SSR hydration mismatch
+  // Check existing session on mount
+  useEffect(() => {
+    fetch("/api/auth")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.authenticated) setCustomer(data.customer);
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }, []);
+
+  // Load persisted lab mode
   useEffect(() => {
     try {
-      const savedDemoId = localStorage.getItem("demoId");
-      if (savedDemoId) setDemoId(savedDemoId);
-      const savedLabMode = localStorage.getItem("labMode");
-      if (savedLabMode) setLabMode(savedLabMode);
+      const saved = localStorage.getItem("labMode");
+      if (saved) setLabMode(saved);
     } catch (_) {}
   }, []);
 
-  // Sync hash on initial load
+  // Persist lab mode
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const hash = location.hash.replace("#", "");
-      if (hash) {
-        setActiveConversationId(hash);
-      }
-    }
-  }, []);
-
-  // Persist selections
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("demoId", demoId);
       localStorage.setItem("labMode", labMode);
     }
-  }, [demoId, labMode]);
+  }, [labMode]);
 
-  // Handle keyboard Escape to dismiss drawers
+  // Escape to dismiss drawers
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
@@ -53,28 +53,48 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const apiHeaders = {
-    "x-demo-identity": demoId,
-    "x-lab-mode": labMode
+  const handleLogin = (customerData) => {
+    setCustomer(customerData);
+    setActiveConversationId("");
   };
+
+  const handleLogout = async () => {
+    await fetch("/api/auth", { method: "DELETE" });
+    setCustomer(null);
+    setActiveConversationId("");
+    setIsSidebarOpen(false);
+    setIsLabPanelOpen(false);
+  };
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[100dvh] bg-[#0b0f17]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-gray-400 text-sm">Checking session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!customer) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   return (
     <div className="flex flex-col h-full min-h-[100dvh] bg-[#0b0f17] text-gray-100 overflow-hidden">
       <Navbar
-        demoId={demoId}
+        customer={customer}
         labMode={labMode}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         onToggleLabPanel={() => setIsLabPanelOpen((prev) => !prev)}
+        onLogout={handleLogout}
       />
 
       <main className="flex flex-1 min-h-0 overflow-hidden relative">
-        {/* Left Sidebar (Desktop static & Mobile drawer) with My Chats and Target Chats */}
         <Sidebar
-          demoId={demoId}
-          setDemoId={setDemoId}
+          customer={customer}
           labMode={labMode}
-          setLabMode={setLabMode}
-          apiHeaders={apiHeaders}
           activeId={activeConversationId}
           onSelectConversation={(id) => {
             setActiveConversationId(id);
@@ -84,27 +104,20 @@ export default function Home() {
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Center Main Chat Window (displays messages or educational 404 block) */}
         <ChatWindow
-          demoId={demoId}
+          customer={customer}
           labMode={labMode}
-          onSwitchLabMode={(newMode) => setLabMode(newMode)}
-          apiHeaders={apiHeaders}
           activeConversationId={activeConversationId}
           setActiveConversationId={setActiveConversationId}
           onOpenSidebar={() => setIsSidebarOpen(true)}
           onOpenLabPanel={() => setIsLabPanelOpen(true)}
         />
 
-        {/* Right Security Lab Inspector (Live audit & 1-click simulation walkthrough) */}
         <LabPanel
-          demoId={demoId}
-          setDemoId={setDemoId}
+          customer={customer}
           labMode={labMode}
           setLabMode={setLabMode}
-          apiHeaders={apiHeaders}
           activeConversationId={activeConversationId}
-          onSelectConversation={(id) => setActiveConversationId(id)}
           isOpen={isLabPanelOpen}
           onClose={() => setIsLabPanelOpen(false)}
         />

@@ -4,58 +4,63 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
-import LabPanel from "../components/LabPanel";
 import LoginScreen from "../components/LoginScreen";
 
 export default function Home() {
   const [customer, setCustomer] = useState(null);
-  const [labMode, setLabMode] = useState("secure");
   const [activeConversationId, setActiveConversationId] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isLabPanelOpen, setIsLabPanelOpen] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [sidebarRefresh, setSidebarRefresh] = useState(0);
 
-  // Check existing session on mount
+  // Check session on mount and auto-select latest conversation
   useEffect(() => {
     fetch("/api/auth")
       .then((r) => r.json())
-      .then((data) => {
-        if (data.authenticated) setCustomer(data.customer);
+      .then(async (data) => {
+        if (data.authenticated && data.customer) {
+          setCustomer(data.customer);
+          // Auto-load latest conversation
+          try {
+            const convosRes = await fetch("/api/conversations");
+            if (convosRes.ok) {
+              const convosData = await convosRes.json();
+              if (convosData.conversations && convosData.conversations.length > 0) {
+                setActiveConversationId(convosData.conversations[0]._id);
+              }
+            }
+          } catch (_) {}
+        }
       })
       .catch(() => {})
       .finally(() => setChecking(false));
   }, []);
 
-  // Load persisted lab mode
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("labMode");
-      if (saved) setLabMode(saved);
-    } catch (_) {}
-  }, []);
-
-  // Persist lab mode
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("labMode", labMode);
-    }
-  }, [labMode]);
-
-  // Escape to dismiss drawers
+  // Escape key closes mobile sidebar
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         setIsSidebarOpen(false);
-        setIsLabPanelOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleLogin = (customerData) => {
+  const handleLogin = async (customerData) => {
     setCustomer(customerData);
     setActiveConversationId("");
+    // Try to auto-select latest conversation for this user
+    try {
+      const convosRes = await fetch("/api/conversations");
+      if (convosRes.ok) {
+        const convosData = await convosRes.json();
+        if (convosData.conversations && convosData.conversations.length > 0) {
+          setActiveConversationId(convosData.conversations[0]._id);
+        }
+      }
+    } catch (_) {}
+    setSidebarRefresh((prev) => prev + 1);
   };
 
   const handleLogout = async () => {
@@ -63,15 +68,19 @@ export default function Home() {
     setCustomer(null);
     setActiveConversationId("");
     setIsSidebarOpen(false);
-    setIsLabPanelOpen(false);
+  };
+
+  const handleConversationCreated = (newId) => {
+    setActiveConversationId(newId);
+    setSidebarRefresh((prev) => prev + 1);
   };
 
   if (checking) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[100dvh] bg-[#0b0f17]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400 text-sm">Checking session...</span>
+      <div className="flex items-center justify-center min-h-[100dvh] bg-slate-50">
+        <div className="flex items-center gap-2.5 text-gray-500 text-sm">
+          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span>Loading...</span>
         </div>
       </div>
     );
@@ -82,20 +91,18 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-[100dvh] bg-[#0b0f17] text-gray-100 overflow-hidden">
+    <div className="flex flex-col h-full min-h-[100dvh] bg-white text-gray-900 overflow-hidden">
       <Navbar
         customer={customer}
-        labMode={labMode}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-        onToggleLabPanel={() => setIsLabPanelOpen((prev) => !prev)}
         onLogout={handleLogout}
       />
 
       <main className="flex flex-1 min-h-0 overflow-hidden relative">
         <Sidebar
           customer={customer}
-          labMode={labMode}
           activeId={activeConversationId}
+          refreshTrigger={sidebarRefresh}
           onSelectConversation={(id) => {
             setActiveConversationId(id);
             setIsSidebarOpen(false);
@@ -106,20 +113,10 @@ export default function Home() {
 
         <ChatWindow
           customer={customer}
-          labMode={labMode}
           activeConversationId={activeConversationId}
           setActiveConversationId={setActiveConversationId}
           onOpenSidebar={() => setIsSidebarOpen(true)}
-          onOpenLabPanel={() => setIsLabPanelOpen(true)}
-        />
-
-        <LabPanel
-          customer={customer}
-          labMode={labMode}
-          setLabMode={setLabMode}
-          activeConversationId={activeConversationId}
-          isOpen={isLabPanelOpen}
-          onClose={() => setIsLabPanelOpen(false)}
+          onConversationCreated={handleConversationCreated}
         />
       </main>
     </div>

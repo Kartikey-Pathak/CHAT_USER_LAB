@@ -26,9 +26,9 @@ async function seed() {
   // ─── Create Customers ───
   const alice = await Customer.create({
     username: "alice",
+    email: "alice.johnson@email.com",
     password: "alice123",
     displayName: "Alice Johnson",
-    email: "alice.johnson@email.com",
     phone: "555-012-3456",
     address: "742 Evergreen Terrace, Springfield, IL 62704",
     membershipTier: "Gold",
@@ -39,9 +39,9 @@ async function seed() {
 
   const bob = await Customer.create({
     username: "bob",
+    email: "bob.smith@email.com",
     password: "bob123",
     displayName: "Bob Smith",
-    email: "bob.smith@email.com",
     phone: "555-987-6543",
     address: "1600 Pennsylvania Ave, Washington, DC 20500",
     membershipTier: "Platinum",
@@ -52,9 +52,9 @@ async function seed() {
 
   const carol = await Customer.create({
     username: "carol",
+    email: "carol.davis@email.com",
     password: "carol123",
     displayName: "Carol Davis",
-    email: "carol.davis@email.com",
     phone: "555-456-7890",
     address: "221B Baker Street, London, UK NW1 6XE",
     membershipTier: "Silver",
@@ -160,6 +160,8 @@ async function seed() {
         { role: "user", content: "What's the status of my latest order?" },
         { role: "assistant", content: "Your most recent order ORD-1002 containing Organic Green Tea and a Stainless Steel Tumbler ($90.49 total) is currently Shipped. It should arrive soon!" },
       ],
+      leakAttemptCount: 0,
+      leaked: false,
     },
     {
       ownerId: bob._id.toString(),
@@ -168,6 +170,8 @@ async function seed() {
         { role: "user", content: "I need a new desk setup. What have I bought recently?" },
         { role: "assistant", content: "Based on your recent purchases, you've got a 4K Ultra HD Monitor, Ergonomic Mechanical Keyboard, and Gaming Mouse Pad. You also have a Standing Desk Converter currently being processed!" },
       ],
+      leakAttemptCount: 0,
+      leaked: false,
     },
     {
       ownerId: carol._id.toString(),
@@ -176,11 +180,16 @@ async function seed() {
         { role: "user", content: "What's in my shopping cart right now?" },
         { role: "assistant", content: "Your cart has 2 items: an Air Purifier HEPA ($219.99) and an Essential Oil Diffuser ($34.99), totaling $254.98." },
       ],
+      leakAttemptCount: 0,
+      leaked: false,
     },
   ]);
 
   console.log("✅ Seed complete!");
-  console.log("   Customers: alice (alice123), bob (bob123), carol (carol123)");
+  console.log("   Customers:");
+  console.log("     - alice.johnson@email.com / alice123 (Gold)");
+  console.log("     - bob.smith@email.com / bob123 (Platinum)");
+  console.log("     - carol.davis@email.com / carol123 (Silver)");
   console.log("   Orders: 6 total across 3 customers");
   console.log("   Cart Items: 7 total across 3 customers");
   console.log("   Conversations: 3 sample chats");

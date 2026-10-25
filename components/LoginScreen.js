@@ -3,26 +3,36 @@
 import React, { useState } from "react";
 
 const DEMO_ACCOUNTS = [
-  { username: "alice", password: "alice123", name: "Alice Johnson", tier: "Gold", color: "purple" },
-  { username: "bob", password: "bob123", name: "Bob Smith", tier: "Platinum", color: "amber" },
-  { username: "carol", password: "carol123", name: "Carol Davis", tier: "Silver", color: "emerald" },
+  { email: "alice.johnson@email.com", password: "alice123", name: "Alice Johnson", tier: "Gold Member" },
+  { email: "bob.smith@email.com", password: "bob123", name: "Bob Smith", tier: "Platinum Member" },
+  { email: "carol.davis@email.com", password: "carol123", name: "Carol Davis", tier: "Silver Member" },
 ];
 
 export default function LoginScreen({ onLogin }) {
-  const [username, setUsername] = useState("");
+  const [isSignup, setIsSignup] = useState(false);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (user, pass) => {
+  const handleSubmit = async (overrideEmail, overridePass) => {
     setLoading(true);
     setError("");
+
+    const finalEmail = overrideEmail || email;
+    const finalPass = overridePass || password;
 
     try {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user || username, password: pass || password }),
+        body: JSON.stringify({
+          email: finalEmail,
+          password: finalPass,
+          displayName: isSignup ? displayName : undefined,
+          action: isSignup ? "signup" : "login",
+        }),
       });
 
       const data = await res.json();
@@ -30,7 +40,7 @@ export default function LoginScreen({ onLogin }) {
       if (res.ok && data.success) {
         onLogin(data.customer);
       } else {
-        setError(data.error || "Login failed");
+        setError(data.error || "Authentication failed");
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -40,130 +50,138 @@ export default function LoginScreen({ onLogin }) {
   };
 
   const quickLogin = (account) => {
-    setUsername(account.username);
+    setEmail(account.email);
     setPassword(account.password);
-    handleLogin(account.username, account.password);
+    setIsSignup(false);
+    handleSubmit(account.email, account.password);
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#0b0f17] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background gradient orbs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-600/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/8 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="w-full max-w-md relative z-10">
+    <div className="min-h-[100dvh] bg-slate-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-xl shadow-blue-500/30">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        <div className="text-center mb-6">
+          <div className="w-11 h-11 mx-auto mb-3 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-300 via-indigo-200 to-white bg-clip-text text-transparent">
-            ShopGuard AI Lab
+          <h1 className="text-xl font-bold text-gray-900">
+            Store Support Chat
           </h1>
-          <p className="text-sm text-gray-400 mt-1.5">
-            OWASP LLM02:2025 — Sensitive Information Disclosure
+          <p className="text-xs text-gray-500 mt-1">
+            Sign in to access your orders, shopping cart, and support chat
           </p>
-          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            <span className="text-[11px] text-rose-300 font-medium">Security Testing Environment</span>
-          </div>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-[#0f172a]/90 rounded-2xl border border-gray-800 shadow-2xl p-6 backdrop-blur-sm">
-          <h2 className="text-sm font-semibold text-gray-200 mb-4 flex items-center gap-2">
-            <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            Customer Login
-          </h2>
+        {/* Auth Card */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-xs p-6">
+          {/* Tabs */}
+          <div className="flex mb-5 bg-gray-100 rounded-lg p-1">
+            <button
+              type="button"
+              onClick={() => { setIsSignup(false); setError(""); }}
+              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition ${
+                !isSignup
+                  ? "bg-white text-gray-900 shadow-xs"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsSignup(true); setError(""); }}
+              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition ${
+                isSignup
+                  ? "bg-white text-gray-900 shadow-xs"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-3">
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-3.5">
+            {isSignup && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Display Name</label>
+                <input
+                  type="text"
+                  id="signup-name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="e.g. Alice Johnson"
+                  className="w-full rounded-lg bg-white border border-gray-300 px-3.5 py-2 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                />
+              </div>
+            )}
+
             <div>
-              <label className="block text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Username</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
               <input
-                type="text"
-                id="login-username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className="w-full rounded-xl bg-[#0b0f17] border border-gray-700 px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500/80 focus:ring-1 focus:ring-blue-500/40 transition"
+                type="email"
+                id="login-email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full rounded-lg bg-white border border-gray-300 px-3.5 py-2 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
               />
             </div>
+
             <div>
-              <label className="block text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Password</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
               <input
                 type="password"
                 id="login-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="w-full rounded-xl bg-[#0b0f17] border border-gray-700 px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500/80 focus:ring-1 focus:ring-blue-500/40 transition"
+                placeholder="••••••••"
+                className="w-full rounded-lg bg-white border border-gray-300 px-3.5 py-2 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
               />
             </div>
 
             {error && (
-              <div className="p-2.5 rounded-lg bg-rose-950/70 border border-rose-500/40 text-rose-300 text-xs">
+              <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs">
                 {error}
               </div>
             )}
 
             <button
               type="submit"
-              disabled={loading || !username || !password}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-lg shadow-blue-600/30 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition"
+              disabled={loading || !email || !password}
+              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium text-xs sm:text-sm shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
-              {loading ? "Authenticating..." : "Sign In"}
+              {loading ? "Please wait..." : isSignup ? "Create Account" : "Sign In"}
             </button>
           </form>
 
-          {/* Quick Login Buttons */}
-          <div className="mt-5 pt-4 border-t border-gray-800">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
-              <span>⚡</span> Quick Login (Demo Accounts)
-            </p>
-            <div className="space-y-2">
-              {DEMO_ACCOUNTS.map((acc) => {
-                const colorMap = {
-                  purple: { bg: "bg-purple-600/15", border: "border-purple-500/40", text: "text-purple-300", dot: "bg-purple-400" },
-                  amber: { bg: "bg-amber-600/15", border: "border-amber-500/40", text: "text-amber-300", dot: "bg-amber-400" },
-                  emerald: { bg: "bg-emerald-600/15", border: "border-emerald-500/40", text: "text-emerald-300", dot: "bg-emerald-400" },
-                };
-                const c = colorMap[acc.color];
-                return (
+          {/* Quick Demo Accounts */}
+          {!isSignup && (
+            <div className="mt-5 pt-4 border-t border-gray-200">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2.5">
+                Quick Login
+              </p>
+              <div className="space-y-1.5">
+                {DEMO_ACCOUNTS.map((acc) => (
                   <button
-                    key={acc.username}
+                    key={acc.email}
                     type="button"
-                    id={`quick-login-${acc.username}`}
+                    id={`quick-login-${acc.name.split(" ")[0].toLowerCase()}`}
                     onClick={() => quickLogin(acc)}
                     disabled={loading}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl ${c.bg} border ${c.border} hover:brightness-125 active:scale-[0.98] transition text-left`}
+                    className="w-full flex items-center justify-between p-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-left transition"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <span className={`w-2.5 h-2.5 rounded-full ${c.dot}`} />
-                      <div>
-                        <p className={`text-xs font-semibold ${c.text}`}>{acc.name}</p>
-                        <p className="text-[10px] text-gray-400">
-                          {acc.username} / {acc.password} · {acc.tier}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">{acc.name}</p>
+                      <p className="text-[11px] text-gray-500">{acc.email} · {acc.tier}</p>
                     </div>
-                    <span className="text-[11px] text-gray-500">→</span>
+                    <span className="text-xs text-gray-400">→</span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Footer Info */}
-        <div className="mt-4 text-center">
-          <p className="text-[11px] text-gray-500 leading-relaxed">
-            This is a controlled security lab for educational testing only.
-            <br />All customer data is fictional.
-          </p>
+          )}
         </div>
       </div>
     </div>

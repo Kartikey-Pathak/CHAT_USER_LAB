@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 
 const CustomerSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true, unique: true, index: true },
+    username: { type: String, unique: true, sparse: true, index: true },
+    email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true }, // plain-text for lab demo only
     displayName: { type: String, required: true },
-    email: { type: String, required: true },
     phone: { type: String },
     address: { type: String },
     membershipTier: { type: String, enum: ["Bronze", "Silver", "Gold", "Platinum"], default: "Bronze" },

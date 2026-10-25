@@ -1,8 +1,8 @@
 import "../styles/globals.css";
 
 export const metadata = {
-  title: "ShopGuard AI — LLM02:2025 Security Lab",
-  description: "Multi-customer AI shopping assistant security lab for testing OWASP LLM02:2025 Sensitive Information Disclosure vulnerabilities"
+  title: "Store Support Chat",
+  description: "Customer Shopping Assistant",
 };
 
 export const viewport = {
@@ -11,13 +11,13 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0b0f17"
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full">
-      <body className="h-full min-h-[100dvh] bg-[#0b0f17] text-gray-100 flex flex-col antialiased overflow-hidden selection:bg-blue-600/30 selection:text-blue-200">
+      <body className="h-full min-h-[100dvh] bg-slate-50 text-slate-900 flex flex-col antialiased overflow-hidden selection:bg-blue-100 selection:text-blue-900">
         {children}
       </body>
     </html>

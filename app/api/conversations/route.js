@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Conversation from "../../../models/Conversation";
 import { connectToDatabase } from "../../../lib/mongodb";
-import { getSessionCustomerId, getLabMode } from "../../../lib/lab-access";
+import { getSessionCustomerId } from "../../../lib/lab-access";
 
 /**
  * GET – list conversations for the authenticated customer.

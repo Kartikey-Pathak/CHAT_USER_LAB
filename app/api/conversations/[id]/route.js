@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
 import Conversation from "../../../../models/Conversation";
 import { connectToDatabase } from "../../../../lib/mongodb";
-import {
-  getSessionCustomerId,
-  getLabMode,
-  recordLabEvent,
-} from "../../../../lib/lab-access";
+import { getSessionCustomerId } from "../../../../lib/lab-access";
 
 /* ---------- READ ---------- */
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
     const customerId = getSessionCustomerId(req);
-    const mode = getLabMode(req);
 
     if (!customerId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -28,25 +23,12 @@ export async function GET(req, { params }) {
       );
     }
 
-    // Secure mode: enforce ownership
-    if (mode === "secure" && convo.ownerId !== customerId) {
-      await recordLabEvent({
-        customerId,
-        action: "cross_user_convo_read",
-        success: false,
-        details: `Blocked access to convo owned by ${convo.ownerId}`,
-      });
+    if (convo.ownerId !== customerId) {
       return NextResponse.json(
-        { error: "Access denied: This conversation belongs to another user." },
+        { error: "Access denied" },
         { status: 403 }
       );
     }
-
-    await recordLabEvent({
-      customerId,
-      action: "convo_read",
-      success: true,
-    });
 
     return NextResponse.json({
       _id: convo._id,
@@ -70,7 +52,6 @@ export async function DELETE(req, { params }) {
   try {
     const { id } = await params;
     const customerId = getSessionCustomerId(req);
-    const mode = getLabMode(req);
 
     if (!customerId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -83,7 +64,7 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (mode === "secure" && convo.ownerId !== customerId) {
+    if (convo.ownerId !== customerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

@@ -98,11 +98,18 @@ export default function ChatWindow({
         }
       } else {
         const errText = await resp.text().catch(() => "");
+        let errMsg = `I couldn't complete that request (${resp.status}). Please try again.`;
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed?.error) {
+            errMsg = typeof parsed.error === "string" ? parsed.error : JSON.stringify(parsed.error);
+          }
+        } catch (_) {}
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content: `I couldn't complete that request (${resp.status}). Please try again.`,
+            content: errMsg,
           },
         ]);
       }

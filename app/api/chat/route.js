@@ -14,7 +14,7 @@ export async function POST(req) {
   try {
     const customerId = getSessionCustomerId(req);
     if (!customerId) {
-      return new NextResponse("Not authenticated", { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     await connectToDatabase();
@@ -23,7 +23,7 @@ export async function POST(req) {
     const { conversationId, message } = body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
-      return new NextResponse("Missing message", { status: 400 });
+      return NextResponse.json({ error: "Missing message" }, { status: 400 });
     }
 
     const trimmedMessage = message.trim();
@@ -49,7 +49,7 @@ export async function POST(req) {
 
     // Verify ownership
     if (convo.ownerId !== customerId) {
-      return new NextResponse("Unauthorized", { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     // Save user message
@@ -77,17 +77,37 @@ GUIDELINES:
 - Always communicate in a helpful, natural, and friendly tone.`;
 
     const apiKey = process.env.GROQ_API_KEY || process.env.OPENROUTER_API_KEY;
-    const isGroq = Boolean(process.env.GROQ_API_KEY) || (typeof apiKey === "string" && apiKey.startsWith("gsk_"));
-    const endpoint = isGroq
-      ? (process.env.GROQ_ENDPOINT || GROQ_ENDPOINT)
-      : (process.env.OPENROUTER_ENDPOINT || OPENROUTER_ENDPOINT);
-    const model =
-      process.env.GROQ_MODEL ||
-      process.env.OPENROUTER_MODEL ||
-      (isGroq ? "openai/gpt-oss-120b" : "openai/gpt-4o-mini");
-
     if (!apiKey) {
-      return new NextResponse("API key (GROQ_API_KEY) not configured", { status: 500 });
+      return NextResponse.json(
+        {
+          error:
+            "GROQ_API_KEY is not configured. Please add GROQ_API_KEY in your Vercel Project Settings (Settings > Environment Variables).",
+        },
+        { status: 500 }
+      );
+    }
+
+    const isGroq = Boolean(process.env.GROQ_API_KEY) || (typeof apiKey === "string" && apiKey.startsWith("gsk_"));
+
+    let endpoint;
+    let model;
+
+    if (isGroq) {
+      endpoint = process.env.GROQ_ENDPOINT || GROQ_ENDPOINT;
+      let m = process.env.GROQ_MODEL;
+      // Do not allow obsolete gpt-3.5-turbo on Groq
+      if (!m || m.includes("gpt-3.5-turbo")) {
+        m = "openai/gpt-oss-120b";
+      }
+      model = m;
+    } else {
+      endpoint = process.env.OPENROUTER_ENDPOINT || OPENROUTER_ENDPOINT;
+      let m = process.env.OPENROUTER_MODEL;
+      // Discontinued on OpenRouter
+      if (!m || m.includes("gpt-3.5-turbo")) {
+        m = "openai/gpt-4o-mini";
+      }
+      model = m;
     }
 
     // Pass last 10 messages for context
@@ -116,7 +136,10 @@ GUIDELINES:
     if (!resp.ok) {
       const err = await resp.text();
       console.error(`${isGroq ? "Groq" : "OpenRouter"} error:`, resp.status, err);
-      return new NextResponse(`Chat service error (${resp.status})`, { status: resp.status });
+      return NextResponse.json(
+        { error: `AI service error (${resp.status}): ${err}` },
+        { status: 502 }
+      );
     }
 
     const data = await resp.json();
@@ -133,6 +156,6 @@ GUIDELINES:
     });
   } catch (error) {
     console.error("POST /api/chat error:", error);
-    return new NextResponse(error.message || "Internal server error", { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
